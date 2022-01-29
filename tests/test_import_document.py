@@ -1,4 +1,4 @@
-from learn_vocab import __version__
+from import_document import __version__
 
 
 def test_version():
