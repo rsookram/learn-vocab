@@ -4,8 +4,6 @@ import sys
 from konlpy.tag import Okt
 
 
-model = Okt()
-
 db_path = sys.argv[1]
 doc_path = sys.argv[2]
 
@@ -49,17 +47,18 @@ insert_sentence = 'INSERT INTO Sentence (sentence, doc_id) VALUES (?, ?)'
 insert_word = 'INSERT INTO Word (word) VALUES (?)'
 insert_word_in_sentence = 'INSERT INTO WordInSentence (wordId, sentenceId) VALUES (?, ?)'
 
+has_document = 'SELECT 1 FROM Document WHERE path=?'
 get_word_id = 'SELECT id FROM Word WHERE word=?'
 
 def load_sentences(path):
     with open(path) as f:
         sentences = f.readlines()
 
-    sentences = [s.split('. ') for s in sentences]
-    sentences = [s.strip() for ss in sentences for s in ss if s.strip()]
+    sentences = (s.split('. ') for s in sentences)
+    sentences = (s.strip() for ss in sentences for s in ss if s.strip())
     return [s.replace('\xa0', ' ') for s in sentences]
 
-def extract_words(sentences):
+def extract_words(model, sentences):
     sentences_to_words = {}
 
     for s in sentences:
@@ -71,14 +70,24 @@ def extract_words(sentences):
     return sentences_to_words
 
 def main():
-    sentences = load_sentences(doc_path)
-    sentences_to_words = extract_words(sentences)
-
     # setup
     con = sqlite3.connect(db_path)
     cur = con.cursor()
 
     cur.executescript(prepare_db)
+
+    cur.execute(has_document, (doc_path,))
+    result = cur.fetchone()
+    if result is not None:
+        print('already imported', doc_path)
+        return
+
+    print('importing', doc_path)
+
+    model = Okt()
+
+    sentences = load_sentences(doc_path)
+    sentences_to_words = extract_words(model, sentences)
 
     # insert
     cur.execute(insert_document, (doc_path,))
