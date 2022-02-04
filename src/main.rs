@@ -1,7 +1,8 @@
+use clap::app_from_crate;
+use clap::arg;
 use rusqlite::Connection;
 use rusqlite::OpenFlags;
 use std::collections::BTreeSet;
-use std::env;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
@@ -12,11 +13,13 @@ struct WordWithCount {
 }
 
 fn main() {
-    let mut args = env::args();
-    args.next(); // skip program name
+    let matches = app_from_crate!()
+        .arg(arg!([LEARNED_PATH]))
+        .arg(arg!([DB_PATH]))
+        .get_matches();
 
-    let file_path = args.next().unwrap();
-    let db_path = args.next().unwrap();
+    let file_path = matches.value_of("LEARNED_PATH").unwrap();
+    let db_path = matches.value_of("DB_PATH").unwrap();
 
     let known_words = read_known_words(&file_path);
 
