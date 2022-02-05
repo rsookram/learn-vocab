@@ -20,6 +20,7 @@ fn main() {
                 .arg(arg!([LEARNED_PATH]))
                 .arg(arg!([DB_PATH])),
         )
+        .subcommand(App::new("sentences").arg(arg!([DB_PATH])).arg(arg!([WORD])))
         .get_matches();
 
     match matches.subcommand() {
@@ -28,6 +29,12 @@ fn main() {
             let db_path = sub_matches.value_of("DB_PATH").unwrap();
 
             command_unknown(learned_path, db_path)
+        }
+        Some(("sentences", sub_matches)) => {
+            let db_path = sub_matches.value_of("DB_PATH").unwrap();
+            let word = sub_matches.value_of("WORD").unwrap();
+
+            command_sentences(db_path, word)
         }
         _ => {}
     }
@@ -65,6 +72,30 @@ fn command_unknown(learned_path: &str, db_path: &str) {
         }
 
         println!("{:2} {}", word_with_count.count, word);
+    }
+}
+
+fn command_sentences(db_path: &str, word: &str) {
+    let conn = Connection::open_with_flags(&db_path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+
+    let mut stmt = conn
+        .prepare(
+            "
+            SELECT sentence
+            FROM Sentence
+                JOIN WordInSentence ON Sentence.id = WordInSentence.SentenceId
+                JOIN Word ON Word.id = WordInSentence.WordId
+            WHERE word = ?
+            ",
+        )
+        .unwrap();
+    let sentence_iter = stmt
+        .query_map([word], |row| Ok(row.get(0).unwrap()))
+        .unwrap();
+
+    for item in sentence_iter {
+        let sentence: String = item.unwrap();
+        println!("{}", sentence);
     }
 }
 
