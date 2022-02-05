@@ -1,5 +1,6 @@
 use clap::app_from_crate;
 use clap::arg;
+use clap::App;
 use rusqlite::Connection;
 use rusqlite::OpenFlags;
 use std::collections::BTreeSet;
@@ -14,14 +15,26 @@ struct WordWithCount {
 
 fn main() {
     let matches = app_from_crate!()
-        .arg(arg!([LEARNED_PATH]))
-        .arg(arg!([DB_PATH]))
+        .subcommand(
+            App::new("unknown")
+                .arg(arg!([LEARNED_PATH]))
+                .arg(arg!([DB_PATH])),
+        )
         .get_matches();
 
-    let file_path = matches.value_of("LEARNED_PATH").unwrap();
-    let db_path = matches.value_of("DB_PATH").unwrap();
+    match matches.subcommand() {
+        Some(("unknown", sub_matches)) => {
+            let learned_path = sub_matches.value_of("LEARNED_PATH").unwrap();
+            let db_path = sub_matches.value_of("DB_PATH").unwrap();
 
-    let known_words = read_known_words(&file_path);
+            command_unknown(learned_path, db_path)
+        }
+        _ => {}
+    }
+}
+
+fn command_unknown(learned_path: &str, db_path: &str) {
+    let known_words = read_known_words(&learned_path);
 
     let conn = Connection::open_with_flags(&db_path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
 
