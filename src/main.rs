@@ -52,9 +52,9 @@ fn main() {
 }
 
 fn command_unknown(learned_path: &str, db_path: &str) {
-    let known_words = read_known_words(&learned_path);
+    let known_words = read_known_words(learned_path);
 
-    let conn = Connection::open_with_flags(&db_path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+    let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
 
     let mut stmt = conn
         .prepare(
@@ -87,7 +87,7 @@ fn command_unknown(learned_path: &str, db_path: &str) {
 }
 
 fn command_sentences(db_path: &str, word: &str) {
-    let conn = Connection::open_with_flags(&db_path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+    let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
 
     let mut stmt = conn
         .prepare(
@@ -145,7 +145,7 @@ fn command_compact(learned_path: &str, db_path: &str) {
 }
 
 fn read_known_words(path: &str) -> BTreeSet<String> {
-    let file = File::open(&path).unwrap();
+    let file = File::open(path).unwrap();
     let mut known_words = BTreeSet::new();
 
     let lines = io::BufReader::new(file).lines();
