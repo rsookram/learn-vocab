@@ -26,6 +26,7 @@ fn main() {
                 .arg(arg!(<LEARNED_PATH>))
                 .arg(arg!(<DB_PATH>)),
         )
+        .subcommand(App::new("n-plus-one").arg(arg!(<DB_PATH>)))
         .get_matches();
 
     match matches.subcommand() {
@@ -47,6 +48,11 @@ fn main() {
 
             command_compact(learned_path, db_path)
         }
+        Some(("n-plus-one", sub_matches)) => {
+            let db_path = sub_matches.value_of("DB_PATH").unwrap();
+
+            command_n_plus_1(db_path)
+        }
         _ => {}
     }
 }
@@ -60,8 +66,8 @@ fn command_unknown(learned_path: &str, db_path: &str) {
         .prepare(
             "
             SELECT word, COUNT(*)
-            FROM Word JOIN WordInSentence ON Word.id = WordInSentence.WordId
-            GROUP by WordId
+            FROM Word JOIN WordInSentence ON Word.id = WordInSentence.wordId
+            GROUP by wordId
             ORDER BY 2 DESC
             ",
         )
@@ -95,7 +101,7 @@ fn command_sentences(db_path: &str, word: &str) {
             SELECT sentence
             FROM Sentence
                 JOIN WordInSentence ON Sentence.id = WordInSentence.SentenceId
-                JOIN Word ON Word.id = WordInSentence.WordId
+                JOIN Word ON Word.id = WordInSentence.wordId
             WHERE word = ?
             ",
         )
@@ -142,6 +148,32 @@ fn command_compact(learned_path: &str, db_path: &str) {
     tx.commit().unwrap();
 
     conn.execute("VACUUM", []).unwrap();
+}
+
+fn command_n_plus_1(db_path: &str) {
+    let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+
+    let mut stmt = conn
+        .prepare(
+            "
+            SELECT word, sentence
+            FROM Sentence
+                JOIN WordInSentence ON Sentence.id = WordInSentence.sentenceId
+                JOIN Word ON Word.id = WordInSentence.wordId
+            GROUP BY sentenceId
+            HAVING COUNT(*) = 1
+            ",
+        )
+        .unwrap();
+    let sentence_iter = stmt
+        .query_map([], |row| Ok((row.get(0).unwrap(), row.get(1).unwrap())))
+        .unwrap();
+
+    for item in sentence_iter {
+        let (word, sentence): (String, String) = item.unwrap();
+        println!("{}\n\n{}", word, sentence);
+        println!("{}", "-".repeat(79))
+    }
 }
 
 fn read_known_words(path: &str) -> BTreeSet<String> {
