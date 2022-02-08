@@ -17,10 +17,10 @@ fn main() {
     let matches = app_from_crate!()
         .subcommand(
             App::new("unknown")
-                .arg(arg!([LEARNED_PATH]))
-                .arg(arg!([DB_PATH])),
+                .arg(arg!(<LEARNED_PATH>))
+                .arg(arg!(<DB_PATH>)),
         )
-        .subcommand(App::new("sentences").arg(arg!([DB_PATH])).arg(arg!([WORD])))
+        .subcommand(App::new("sentences").arg(arg!(<DB_PATH>)).arg(arg!(<WORD>)))
         .get_matches();
 
     match matches.subcommand() {
