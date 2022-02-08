@@ -17,10 +17,15 @@ fn main() {
     let matches = app_from_crate!()
         .subcommand(
             App::new("unknown")
+                .arg(arg!(<learned_path>))
+                .arg(arg!(<db_path>)),
+        )
+        .subcommand(App::new("sentences").arg(arg!(<DB_PATH>)).arg(arg!(<WORD>)))
+        .subcommand(
+            App::new("compact")
                 .arg(arg!(<LEARNED_PATH>))
                 .arg(arg!(<DB_PATH>)),
         )
-        .subcommand(App::new("sentences").arg(arg!(<DB_PATH>)).arg(arg!(<WORD>)))
         .get_matches();
 
     match matches.subcommand() {
@@ -35,6 +40,12 @@ fn main() {
             let word = sub_matches.value_of("WORD").unwrap();
 
             command_sentences(db_path, word)
+        }
+        Some(("compact", sub_matches)) => {
+            let learned_path = sub_matches.value_of("LEARNED_PATH").unwrap();
+            let db_path = sub_matches.value_of("DB_PATH").unwrap();
+
+            command_compact(learned_path, db_path)
         }
         _ => {}
     }
@@ -97,6 +108,40 @@ fn command_sentences(db_path: &str, word: &str) {
         let sentence: String = item.unwrap();
         println!("{}", sentence);
     }
+}
+
+fn command_compact(learned_path: &str, db_path: &str) {
+    let known_words = read_known_words(learned_path);
+
+    let mut conn = Connection::open(db_path).unwrap();
+
+    let tx = conn.transaction().unwrap();
+
+    for word in known_words {
+        tx.execute(
+            "
+            DELETE
+            FROM Word
+            WHERE word = ?
+            ",
+            [word],
+        )
+        .unwrap();
+    }
+
+    tx.execute(
+        "
+        DELETE
+        FROM Sentence
+        WHERE id NOT IN (SELECT sentenceId FROM WordInSentence)
+        ",
+        [],
+    )
+    .unwrap();
+
+    tx.commit().unwrap();
+
+    conn.execute("VACUUM", []).unwrap();
 }
 
 fn read_known_words(path: &str) -> BTreeSet<String> {
