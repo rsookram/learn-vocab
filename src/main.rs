@@ -17,8 +17,8 @@ fn main() {
     let matches = app_from_crate!()
         .subcommand(
             App::new("unknown")
-                .arg(arg!(<learned_path>))
-                .arg(arg!(<db_path>)),
+                .arg(arg!(<LEARNED_PATH>))
+                .arg(arg!(<DB_PATH>)),
         )
         .subcommand(App::new("sentences").arg(arg!(<DB_PATH>)).arg(arg!(<WORD>)))
         .subcommand(
