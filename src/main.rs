@@ -7,8 +7,8 @@ use rusqlite::Connection;
 use rusqlite::OpenFlags;
 use std::collections::BTreeSet;
 use std::fs::File;
-use std::io;
 use std::io::BufRead;
+use std::io::BufReader;
 
 struct WordWithCount {
     word: String,
@@ -181,10 +181,9 @@ fn read_known_words(path: &str) -> Result<BTreeSet<String>> {
     let file = File::open(path)?;
     let mut known_words = BTreeSet::new();
 
-    let lines = io::BufReader::new(file).lines();
-    lines.flat_map(|line| line).for_each(|line| {
-        known_words.insert(line);
-    });
+    for line in BufReader::new(file).lines() {
+        known_words.insert(line?);
+    }
 
     Ok(known_words)
 }
