@@ -1,8 +1,11 @@
+use anyhow::anyhow;
 use anyhow::Result;
 use clap::app_from_crate;
 use clap::arg;
 use clap::App;
 use clap::AppSettings;
+use owo_colors::OwoColorize;
+use owo_colors::Stream;
 use rusqlite::Connection;
 use rusqlite::OpenFlags;
 use std::collections::BTreeSet;
@@ -18,6 +21,7 @@ struct WordWithCount {
 fn main() -> Result<()> {
     let matches = app_from_crate!()
         .setting(AppSettings::SubcommandRequired)
+        .arg(arg!(--color <COLOR>).required(false))
         .subcommand(
             App::new("unknown")
                 .arg(arg!(<LEARNED_PATH>))
@@ -31,6 +35,19 @@ fn main() -> Result<()> {
         )
         .subcommand(App::new("n-plus-one").arg(arg!(<DB_PATH>)))
         .get_matches();
+
+    match matches.value_of("color") {
+        Some("always") => owo_colors::set_override(true),
+        Some("never") => owo_colors::set_override(false),
+        Some("auto") => {}
+        Some(value) => {
+            return Err(anyhow!(
+                "argument for --color must be auto, always, or never, but found `{}`",
+                value
+            ))
+        }
+        None => {}
+    }
 
     match matches.subcommand() {
         Some(("unknown", sub_matches)) => {
@@ -112,7 +129,14 @@ fn command_sentences(db_path: &str, word: &str) -> Result<()> {
     let sentence_iter = stmt.query_map([word], |row| row.get(0))?;
 
     for item in sentence_iter {
-        let sentence: String = item?;
+        let stem = word.strip_suffix("하다").unwrap_or(word);
+        let mut sentence: String = item?;
+        sentence = sentence.replace(
+            stem,
+            &stem
+                .if_supports_color(Stream::Stdout, |text| text.red())
+                .to_string(),
+        );
         println!("{}", sentence);
     }
 
