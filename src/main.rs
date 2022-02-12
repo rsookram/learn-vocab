@@ -129,15 +129,8 @@ fn command_sentences(db_path: &str, word: &str) -> Result<()> {
     let sentence_iter = stmt.query_map([word], |row| row.get(0))?;
 
     for item in sentence_iter {
-        let stem = word.strip_suffix("하다").unwrap_or(word);
-        let mut sentence: String = item?;
-        sentence = sentence.replace(
-            stem,
-            &stem
-                .if_supports_color(Stream::Stdout, |text| text.red())
-                .to_string(),
-        );
-        println!("{}", sentence);
+        let sentence: String = item?;
+        println!("{}", highlight_word(&sentence, word));
     }
 
     Ok(())
@@ -194,7 +187,7 @@ fn command_n_plus_1(db_path: &str) -> Result<()> {
 
     for item in sentence_iter {
         let (word, sentence): (String, String) = item?;
-        println!("{}\n\n{}", word, sentence);
+        println!("{}\n\n{}", word, highlight_word(&sentence, &word));
         println!("{}", "-".repeat(79))
     }
 
@@ -210,4 +203,14 @@ fn read_known_words(path: &str) -> Result<BTreeSet<String>> {
     }
 
     Ok(known_words)
+}
+
+fn highlight_word(sentence: &str, word: &str) -> String {
+    let stem = word.strip_suffix("하다").unwrap_or(word);
+    sentence.replace(
+        stem,
+        &stem
+            .if_supports_color(Stream::Stdout, |text| text.red())
+            .to_string(),
+    )
 }
