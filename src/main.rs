@@ -1,9 +1,8 @@
 use anyhow::anyhow;
 use anyhow::Result;
-use clap::app_from_crate;
 use clap::arg;
-use clap::App;
-use clap::AppSettings;
+use clap::command;
+use clap::Command;
 use owo_colors::OwoColorize;
 use owo_colors::Stream;
 use rusqlite::Connection;
@@ -19,21 +18,25 @@ struct WordWithCount {
 }
 
 fn main() -> Result<()> {
-    let matches = app_from_crate!()
-        .setting(AppSettings::SubcommandRequired)
+    let matches = command!()
+        .subcommand_required(true)
         .arg(arg!(--color <COLOR>).required(false))
         .subcommand(
-            App::new("unknown")
+            Command::new("unknown")
                 .arg(arg!(<LEARNED_PATH>))
                 .arg(arg!(<DB_PATH>)),
         )
-        .subcommand(App::new("sentences").arg(arg!(<DB_PATH>)).arg(arg!(<WORD>)))
         .subcommand(
-            App::new("compact")
+            Command::new("sentences")
+                .arg(arg!(<DB_PATH>))
+                .arg(arg!(<WORD>)),
+        )
+        .subcommand(
+            Command::new("compact")
                 .arg(arg!(<LEARNED_PATH>))
                 .arg(arg!(<DB_PATH>)),
         )
-        .subcommand(App::new("n-plus-one").arg(arg!(<DB_PATH>)))
+        .subcommand(Command::new("n-plus-one").arg(arg!(<DB_PATH>)))
         .get_matches();
 
     match matches.value_of("color") {
